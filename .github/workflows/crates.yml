@@ -1,0 +1,37 @@
+name: Release crate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "major/minor/patch or semver"
+        required: false
+        default: "patch"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set git credentials
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+      - name: Crates publish
+        uses: kaleidawave/crates-release-gh-action@v1
+        id: release
+        with:
+          version: ${{ github.event.inputs.version }}
+          crates-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Push updated Cargo.toml
+        run: |
+          git tag "v${{ steps.release.outputs.new-version }}"
+          git add .
+          git commit -m "Release: ${{ steps.release.outputs.new-version }}"
+          git push --tags origin main
+      - name: Discord
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: info
+          text: "Released version ${{ steps.release.outputs.new-version }}"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_ENDPOINT }}

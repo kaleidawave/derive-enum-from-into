@@ -1,0 +1,20 @@
+[package]
+name = "derive-enum-from-try-into"
+version = "0.0.0"
+edition = "2018"
+description = "Derive for From and TryInto for enums with single fields"
+authors = [ "Ben <kaleidawave@gmail.com>" ]
+categories = [ "rust-patterns" ]
+license = "MIT"
+repository = "https://github.com/kaleidawave/derive-enum-from-into"
+
+[lib]
+name = "derive_enum_from_try_into"
+proc-macro = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+proc-macro2 = "1.0"
+syn = { version = "1.0", features = ["full", "extra-traits"] }
+quote = "1.0"
