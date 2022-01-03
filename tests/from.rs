@@ -1,4 +1,4 @@
-use derive_enum_from_try_into::EnumFrom;
+use derive_enum_from_into::EnumFrom;
 
 #[test]
 fn from() {

@@ -1,4 +1,4 @@
-use derive_enum_from_try_into::EnumTryInto;
+use derive_enum_from_into::EnumTryInto;
 use std::convert::TryInto;
 
 #[test]
@@ -16,7 +16,7 @@ fn into() {
     );
 
     let err: Result<String, ()> = NumberOrString::Num(56.0).try_into();
-    assert_eq!(err.unwrap_err(), ());
+    assert_eq!(err, Err(()));
 }
 
 #[test]

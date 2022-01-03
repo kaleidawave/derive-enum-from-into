@@ -59,7 +59,6 @@ fn get_unnamed_single_non_ignored_variants<'a>(
 
 #[cfg(test)]
 mod test {
-    use crate::from;
     use quote::quote;
     use syn::{parse_quote, DataEnum, DeriveInput};
 
@@ -82,7 +81,7 @@ mod test {
         };
         let (enum1, name, attributes) = dissect_input(input);
 
-        let result = from::derive_enum_from(enum1, name, attributes);
+        let result = crate::from::derive_enum_from(enum1, name, attributes);
         assert_eq!(
             result.to_string(),
             quote! {
