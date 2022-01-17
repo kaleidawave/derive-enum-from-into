@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "derive-enum-from-into"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",

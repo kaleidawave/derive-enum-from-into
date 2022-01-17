@@ -50,14 +50,14 @@ pub(super) fn derive_enum_into(
                         #[automatically_derived]
                         impl #lifetime_binding ::core::convert::TryInto<#reference #variant_type>
                         for #reference #enum_name {
-                            type Error = ();
+                            type Error = Self;
 
                             #[inline]
                             fn try_into(self) -> Result<#reference #variant_type, Self::Error> {
                                 if let #enum_name::#variant_name(item) = self {
                                     Ok(item)
                                 } else {
-                                    Err(())
+                                    Err(self)
                                 }
                             }
                         }
@@ -87,24 +87,23 @@ impl Default for References {
 impl Parse for References {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let flags = input
-            .parse_terminated::<u8, Token![,]>(|input| {
+            .parse_terminated::<_, Token![,]>(|input| {
                 if input.peek(Token![ref]) || input.peek(Token![&]) {
                     input.parse::<proc_macro2::TokenTree>().unwrap();
                     if input.peek(Token![mut]) {
                         input.parse::<Token![mut]>().unwrap();
-                        Ok(References::SharedMut as u8)
+                        Ok(References::SharedMut)
                     } else {
-                        Ok(References::Shared as u8)
+                        Ok(References::Shared)
                     }
+                } else if input.peek(Ident) && input.parse::<Ident>().unwrap() == "owned" {
+                    Ok(References::Owned)
                 } else {
-                    if input.peek(Ident) && input.parse::<Ident>().unwrap().to_string() == "owned" {
-                        Ok(References::Owned as u8)
-                    } else {
-                        Err(Error::new(input.span(), "expected 'ref' or '&'"))
-                    }
+                    Err(Error::new(input.span(), "expected 'ref', '&' or 'owned'"))
                 }
             })?
             .into_iter()
+            .map(|member| member as u8)
             .reduce(std::ops::BitOr::bitor)
             .unwrap_or_default();
 

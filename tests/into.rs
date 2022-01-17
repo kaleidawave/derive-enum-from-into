@@ -15,14 +15,14 @@ fn into() {
         Ok("Hello".to_owned())
     );
 
-    let err: Result<String, ()> = NumberOrString::Num(56.0).try_into();
-    assert_eq!(err, Err(()));
+    let err: Result<String, _> = NumberOrString::Num(56.0).try_into();
+    assert!(err.is_err());
 }
 
 #[test]
 fn into_reference() {
     #[derive(EnumTryInto, Debug, PartialEq)]
-    #[try_into_references(&, ref mut)]
+    #[try_into_references(&, ref mut, owned)]
     #[allow(dead_code)]
     enum NumberOrString {
         Num(f32),
@@ -31,6 +31,22 @@ fn into_reference() {
     }
 
     let number_ref = NumberOrString::Num(4.5);
-
     assert_eq!((&number_ref).try_into(), Ok(&4.5));
+    assert_eq!(TryInto::<&f32>::try_into(&number_ref), Ok(&4.5));
+}
+
+#[test]
+fn returns_self_if_no_match() {
+    #[derive(EnumTryInto, Debug, PartialEq, Clone)]
+    #[allow(dead_code)]
+    enum NumberOrString {
+        Num(f32),
+        String(String),
+    }
+
+    let number_ref = NumberOrString::Num(4.5);
+    assert_eq!(
+        TryInto::<String>::try_into(number_ref.clone()),
+        Err(number_ref)
+    );
 }
