@@ -50,3 +50,20 @@ fn returns_self_if_no_match() {
         Err(number_ref)
     );
 }
+
+#[test]
+fn into_generic_t() {
+    #[derive(Debug, PartialEq)]
+    struct B<T>(pub T);
+
+    #[derive(EnumTryInto, Debug, PartialEq)]
+    #[try_into_references(owned)]
+    #[allow(dead_code)]
+    enum MyOption<T> {
+        Some(B<T>),
+        None,
+    }
+
+    let my_opt = MyOption::Some(B(4.5f32));
+    assert_eq!(my_opt.try_into(), Ok(B(4.5f32)));
+}

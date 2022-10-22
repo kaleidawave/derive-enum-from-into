@@ -14,3 +14,18 @@ fn from() {
     );
     assert_eq!(NumberOrString::from(5.1), NumberOrString::Num(5.1));
 }
+
+#[test]
+fn from_with_generics() {
+    #[derive(EnumFrom, Debug, PartialEq)]
+    enum StringOrNumberRef<'a> {
+        Str(&'a mut String),
+        Num(&'a f32),
+    }
+
+    assert_eq!(
+        StringOrNumberRef::from(&mut "Hi".to_owned()),
+        StringOrNumberRef::Str(&mut "Hi".to_owned())
+    );
+    assert_eq!(StringOrNumberRef::from(&5.1), StringOrNumberRef::Num(&5.1));
+}
