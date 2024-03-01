@@ -4,7 +4,7 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{
     parse::Parse, parse_quote, token::Comma, Attribute, DataEnum, Error, GenericArgument,
-    GenericParam, Generics, Ident, Lifetime, LifetimeDef, Path, PathArguments, Token, Type,
+    GenericParam, Generics, Ident, Lifetime, LifetimeParam, Path, PathArguments, Token, Type,
     TypePath, TypeReference,
 };
 
@@ -28,7 +28,7 @@ pub(super) fn derive_enum_into(
     let references: ReferenceConfig = top_attributes
         .iter()
         .find_map(|attr| {
-            attr.path
+            attr.path()
                 .is_ident("try_into_references")
                 .then(|| attr.parse_args().unwrap())
         })
@@ -128,21 +128,24 @@ impl Default for ReferenceConfig {
 impl Parse for ReferenceConfig {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let flags = input
-            .parse_terminated::<_, Token![,]>(|input| {
-                if input.peek(Token![ref]) || input.peek(Token![&]) {
-                    input.parse::<proc_macro2::TokenTree>().unwrap();
-                    if input.peek(Token![mut]) {
-                        input.parse::<Token![mut]>().unwrap();
-                        Ok(ReferenceConfig::SharedMut)
+            .parse_terminated(
+                |input| {
+                    if input.peek(Token![ref]) || input.peek(Token![&]) {
+                        input.parse::<proc_macro2::TokenTree>().unwrap();
+                        if input.peek(Token![mut]) {
+                            input.parse::<Token![mut]>().unwrap();
+                            Ok(ReferenceConfig::SharedMut)
+                        } else {
+                            Ok(ReferenceConfig::Shared)
+                        }
+                    } else if input.peek(Ident) && input.parse::<Ident>().unwrap() == "owned" {
+                        Ok(ReferenceConfig::Owned)
                     } else {
-                        Ok(ReferenceConfig::Shared)
+                        Err(Error::new(input.span(), "expected 'ref', '&' or 'owned'"))
                     }
-                } else if input.peek(Ident) && input.parse::<Ident>().unwrap() == "owned" {
-                    Ok(ReferenceConfig::Owned)
-                } else {
-                    Err(Error::new(input.span(), "expected 'ref', '&' or 'owned'"))
-                }
-            })?
+                },
+                Token![,],
+            )?
             .into_iter()
             .map(|member| member as u8)
             .reduce(std::ops::BitOr::bitor)
@@ -189,7 +192,7 @@ impl ReferenceDecorator {
             ReferenceDecorator::Owned => None,
             ReferenceDecorator::Shared(lifetime_name)
             | ReferenceDecorator::SharedMut(lifetime_name) => Some(GenericParam::Lifetime(
-                LifetimeDef::new(lifetime_name.clone()),
+                LifetimeParam::new(lifetime_name.clone()),
             )),
         }
     }

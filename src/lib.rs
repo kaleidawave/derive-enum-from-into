@@ -50,7 +50,7 @@ fn get_unnamed_single_non_ignored_variants<'a>(
                 && !variant
                     .attrs
                     .iter()
-                    .any(|attr| attr.path.is_ident(ignore_ident))
+                    .any(|attr| attr.path().is_ident(ignore_ident))
             {
                 Some((
                     variant.ident.clone(),
