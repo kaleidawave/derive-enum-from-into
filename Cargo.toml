@@ -1,6 +1,6 @@
 [package]
 name = "derive-enum-from-into"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2018"
 description = "Derive for From and TryInto for enums with single fields"
 authors = [ "Ben <kaleidawave@gmail.com>" ]
