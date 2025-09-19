@@ -1,0 +1,49 @@
+name: Release crate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "major/minor/patch or semver"
+        required: false
+        default: "patch"
+
+concurrency: release-crate
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+    - id: checkout
+      uses: actions/checkout@v4
+
+    - id: auth
+      uses: rust-lang/crates-io-auth-action@v1
+
+    - id: release
+      name: Crates publish
+      uses: kaleidawave/crates-release-gh-action@improvements
+      with:
+        version: ${{ github.event.inputs.version }}
+        crates-token: ${{ steps.auth.outputs.token }}
+
+    - name: Push updated Cargo.toml
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -u
+        git commit -m "Release: ${{ steps.release.outputs.new-version }}"
+        git tag "release/${{ steps.release.outputs.new-version }}"
+        git push --tags origin ${{ steps.checkout.outputs.ref }}
+
+    - name: Discord
+      uses: dusmartijngames/discord-webhook-notify@master
+      with:
+        severity: info
+        text: "Released version ${{ steps.release.outputs.new-versions-description }}"
+        webhookUrl: ${{ secrets.DISCORD_WEBHOOK_ENDPOINT }}

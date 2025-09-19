@@ -1,6 +1,7 @@
-# Derive enum from try into
+# Derive enum from into
 
-[![](https://img.shields.io/crates/v/derive-enum-from-into)](https://crates.io/crates/derive-enum-from-into)
+[![crates.io badge](https://img.shields.io/crates/v/derive-enum-from-into?style=flat-square)](https://crates.io/crates/derive-enum-from-into)
+[![docs.rs badge](https://img.shields.io/docsrs/derive-enum-from-into?style=flat-square)](https://docs.rs/derive-enum-from-into/latest)
 
 Implements `From` and `TryInto` for enums
 

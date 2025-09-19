@@ -1,7 +1,6 @@
-use std::{collections::HashMap, mem};
-
 use proc_macro2::Span;
 use quote::quote;
+use std::collections::HashMap;
 use syn::{
     parse::Parse, parse_quote, token::Comma, Attribute, DataEnum, Error, GenericArgument,
     GenericParam, Generics, Ident, Lifetime, LifetimeParam, Path, PathArguments, Token, Type,
@@ -108,20 +107,36 @@ pub(super) fn derive_enum_into(
         .collect::<proc_macro2::TokenStream>()
 }
 
-#[repr(u8)]
-#[derive(Copy, Clone)]
-#[allow(dead_code)]
-enum ReferenceConfig {
-    Owned = 0b0001,
-    Shared = 0b0010,
-    SharedMut = 0b0100,
-    None = 0b0000,
-    All = 0b0111,
+#[derive(Copy, Clone, PartialEq, Eq)]
+struct ReferenceConfig(pub u8);
+
+impl ReferenceConfig {
+    const OWNED: Self = Self(0b0001);
+    const SHARED: Self = Self(0b0010);
+    const SHARED_MUT: Self = Self(0b0100);
+    const NONE: Self = Self(0b0000);
+    // const ALL: Self = Self(0b0111);
+}
+
+impl std::ops::BitOr for ReferenceConfig {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl std::ops::BitAnd for ReferenceConfig {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
 }
 
 impl Default for ReferenceConfig {
     fn default() -> Self {
-        Self::Owned
+        Self::OWNED
     }
 }
 
@@ -134,12 +149,12 @@ impl Parse for ReferenceConfig {
                         input.parse::<proc_macro2::TokenTree>().unwrap();
                         if input.peek(Token![mut]) {
                             input.parse::<Token![mut]>().unwrap();
-                            Ok(ReferenceConfig::SharedMut)
+                            Ok(ReferenceConfig::SHARED_MUT)
                         } else {
-                            Ok(ReferenceConfig::Shared)
+                            Ok(ReferenceConfig::SHARED)
                         }
                     } else if input.peek(Ident) && input.parse::<Ident>().unwrap() == "owned" {
-                        Ok(ReferenceConfig::Owned)
+                        Ok(ReferenceConfig::OWNED)
                     } else {
                         Err(Error::new(input.span(), "expected 'ref', '&' or 'owned'"))
                     }
@@ -147,11 +162,10 @@ impl Parse for ReferenceConfig {
                 Token![,],
             )?
             .into_iter()
-            .map(|member| member as u8)
             .reduce(std::ops::BitOr::bitor)
             .unwrap_or_default();
 
-        Ok(unsafe { mem::transmute(flags) })
+        Ok(flags)
     }
 }
 
@@ -164,16 +178,16 @@ impl ReferenceConfig {
         (0..3)
             .map(|bit_offset| 0b0001_u8 << bit_offset)
             .filter_map(move |power_of_two| {
-                let flag = self as u8 & power_of_two;
-                match unsafe { mem::transmute(flag) } {
-                    ReferenceConfig::Owned => Some(ReferenceDecorator::Owned),
-                    ReferenceConfig::Shared => {
+                let flag = self & ReferenceConfig(power_of_two);
+                match flag {
+                    ReferenceConfig::OWNED => Some(ReferenceDecorator::Owned),
+                    ReferenceConfig::SHARED => {
                         Some(ReferenceDecorator::Shared(lifetime_name.clone()))
                     }
-                    ReferenceConfig::SharedMut => {
+                    ReferenceConfig::SHARED_MUT => {
                         Some(ReferenceDecorator::SharedMut(lifetime_name.clone()))
                     }
-                    ReferenceConfig::None => None,
+                    ReferenceConfig::NONE => None,
                     _ => unreachable!(),
                 }
             })

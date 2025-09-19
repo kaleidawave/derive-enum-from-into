@@ -24,6 +24,7 @@ jobs:
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
     - name: Check source is valid
       run: cargo check --workspace
 
@@ -31,14 +32,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
     - name: Check formatting with rustfmt
       run: cargo fmt --all --check
-    - uses: brndnmtthws/rust-action-cargo-binstall@v1
+
+    - uses: kaleidawave/release-downloader@improvements
       with:
-        packages: taplo-cli
-    - name: Check TOML formatting with taplo
-      run: |
-        taplo fmt --check **/*/Cargo.toml
+        items: kaleidawave/simple-toml-parser@canary[format]
+
+    - name: Check 'Cargo.toml' formatting
+      run: format Cargo.toml --check
 
   tests:
     needs: validity
@@ -49,6 +52,7 @@ jobs:
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
     - name: Run all tests
       run: cargo test --workspace --verbose --all-features
 
@@ -61,18 +65,28 @@ jobs:
       with:
         path: ${{ env.CACHE_PATHS }}
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
     - name: Lint code with clippy
       run: cargo clippy
 
   publish-ability:
     runs-on: ubuntu-latest
-    if: false
     steps:
-    - uses: actions/checkout@v4
-    - name: Check that it will publish to crates
-      run: |
-        cargo metadata --offline --format-version 1 --no-deps | jq -r ".workspace_members[]" | while read -r _n _v pathInfo ; do
-          cd ${pathInfo:13:-1}
-          cargo publish --no-verify --dry-run
-        done
-      shell: bash
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            manifests:
+              - '**/*.toml'
+
+      - uses: kaleidawave/release-downloader@improvements
+        if: steps.changes.outputs.manifests == 'true'
+        with:
+          items: kaleidawave/crates-release-gh-action@assets[crates-release]
+          
+      - name: Check that it will publish to crates.io
+        if: steps.changes.outputs.manifests == 'true'
+        run: crates-release verify
